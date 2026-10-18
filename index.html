@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CFG & PDA Syntax Analyzer & Visualizer | Theory of Computation</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-theme="dark">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <h1 class="brand-title">CFG & Pushdown Automaton Visualizer</h1>
+    </div>
+    <div class="header-controls">
+      <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme">🌓 Theme</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+
+    <!-- Preset & Configuration Toolbar -->
+    <div class="preset-toolbar">
+      <div class="toolbar-group">
+        <label for="presetSelect" class="toolbar-label">Load Test Preset:</label>
+        <select id="presetSelect" class="select-custom">
+          <option value="">-- Choose a Pre-built Test Case --</option>
+          <optgroup label="✅ Valid Expressions">
+            <option value="a + b * c">Basic Operator Precedence: a + b * c</option>
+            <option value="(a + b) * c">Parenthesized Precedence: (a + b) * c</option>
+            <option value="x = a + b * c">Variable Assignment: x = a + b * c</option>
+            <option value="res = (10 + 20) / (var_a - 4)">Nested Arithmetic: res = (10 + 20) / (var_a - 4)</option>
+            <option value="count = count + 1">Self Assignment: count = count + 1</option>
+            <option value="42">Single Number: 42</option>
+            <option value="my_var">Single Identifier: my_var</option>
+          </optgroup>
+          <optgroup label="❌ Invalid Syntax Cases">
+            <option value="a + * b">Consecutive Operators: a + * b</option>
+            <option value="a + (b * c">Missing Closing Parenthesis: a + (b * c</option>
+            <option value="a + b)">Unexpected Closing Parenthesis: a + b)</option>
+            <option value="x =">Incomplete Assignment: x =</option>
+            <option value="a + b +">Trailing Operator: a + b +</option>
+            <option value="a b + c">Missing Operator Between Operands: a b + c</option>
+            <option value="a + @b">Invalid Lexical Token: a + @b</option>
+            <option value="123abc + 5">Malformed Number/Identifier: 123abc + 5</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="grammarModeSelect" class="toolbar-label">Grammar Mode:</label>
+        <select id="grammarModeSelect" class="select-custom">
+          <option value="full" selected>Expressions & Assignments (S → id = E | E)</option>
+          <option value="arithmetic">Pure Arithmetic Expressions (E → E + T | T)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+
+      <!-- Left Column: Input, Tokens, Grammar -->
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Module 1: Code Input Editor -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">📝 Module 1: Code Input</h2>
+            <button id="clearBtn" class="theme-toggle-btn" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;">Clear</button>
+          </div>
+          <div class="card-body">
+            <div class="editor-container">
+              <textarea id="codeEditor" class="editor-textarea" placeholder="Enter an arithmetic expression or assignment, e.g., a + b * c" spellcheck="false">a + b * c</textarea>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Quick Examples:</span>
+                <button type="button" class="quick-chip-btn" data-val="a + b * c">a + b * c</button>
+                <button type="button" class="quick-chip-btn" data-val="(a + b) * c">(a + b) * c</button>
+                <button type="button" class="quick-chip-btn" data-val="x = a + b * c">x = a + b * c</button>
+                <button type="button" class="quick-chip-btn" data-val="a + * b">a + * b ❌</button>
+                <button type="button" class="quick-chip-btn" data-val="a + (b * c">a + (b * c ❌</button>
+              </div>
+              <button id="checkBtn" class="btn-primary" style="margin-top: 0.25rem;">
+                <span>🚀 Check Syntax & Simulate PDA</span>
+              </button>
+            </div>
+
+            <!-- Token Stream Display -->
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">
+                Tokenized Stream:
+              </div>
+              <div id="tokensContainer" class="tokens-container">
+                <!-- Badges dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 2: CFG Grammar Engine View -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">📐 Module 2: CFG Grammar Rules</h2>
+            <span id="grammarBadge" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">LL(1) Transformed</span>
+          </div>
+          <div class="card-body">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              <strong>Natural Grammar Rules:</strong>
+            </div>
+            <div id="naturalRulesList" class="grammar-rules-list" style="max-height: 90px;">
+              <!-- Loaded dynamically -->
+            </div>
+
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+              <strong>Transformed LL(1) Predictive Rules:</strong>
+            </div>
+            <div id="ll1RulesList" class="grammar-rules-list" style="max-height: 140px;">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Result Banner, PDA Visualizer, Parse Tree, Tests -->
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+        <!-- Module 4: Error Detection and Explanation Banner -->
+        <div id="statusBanner" class="status-banner valid">
+          <div id="statusIcon" class="status-icon">✓</div>
+          <div class="status-content">
+            <h3 id="statusTitle">Syntax is valid</h3>
+            <p id="statusMsg">Expression was successfully parsed and accepted by the Pushdown Automaton.</p>
+            <div id="statusSuggestion" class="status-suggestion" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- Tabs Container -->
+        <div class="card">
+          <div class="tabs-header">
+            <button class="tab-btn active" data-tab="pdaTab">⚙️ PDA Simulator</button>
+            <button class="tab-btn" data-tab="treeTab">🌳 Parse Tree & Derivation</button>
+            <button class="tab-btn" data-tab="testTab">🧪 Test Suite</button>
+            <button class="tab-btn" data-tab="historyTab">🕒 Session History</button>
+          </div>
+
+          <!-- Tab 1: Module 3 & 5: PDA Simulator & Visual Explanation -->
+          <div id="pdaTab" class="tab-content active">
+            
+            <!-- Controls Bar -->
+            <div class="pda-controls-bar">
+              <div class="step-btns">
+                <button id="btnStart" class="ctrl-btn" title="First Step">⏮ First</button>
+                <button id="btnPrev" class="ctrl-btn" title="Previous Step">◀ Step</button>
+                <button id="btnPlay" class="ctrl-btn" style="background: var(--accent-blue); color: white;" title="Play / Pause">▶ Play</button>
+                <button id="btnNext" class="ctrl-btn" title="Next Step">Step ▶</button>
+                <button id="btnEnd" class="ctrl-btn" title="Final Step">⏭ End</button>
+              </div>
+
+              <div style="font-weight: 700; font-family: var(--font-mono); font-size: 0.9rem;" id="stepCounter">
+                Step 0 / 0
+              </div>
+
+              <div class="speed-control">
+                <span>Speed:</span>
+                <input type="range" id="speedSlider" min="100" max="1500" value="600" step="50" style="width: 100px;">
+                <span id="speedVal">600ms</span>
+              </div>
+            </div>
+
+            <!-- PDA Visual Grid -->
+            <div class="pda-visual-grid">
+              
+              <!-- Stack Viewer -->
+              <div class="stack-viewer-card">
+                <div class="stack-title">PDA Stack (Γ)</div>
+                <div id="stackContainer" class="stack-container">
+                  <div class="stack-item bottom-marker">Z0</div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+                  ▲ Top of Stack<br>▼ Bottom (Z0)
+                </div>
+              </div>
+
+              <!-- Tape and State Transitions -->
+              <div class="tape-and-trace">
+                
+                <!-- Input Tape -->
+                <div class="input-tape-box">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Input Tape (Σ):</span>
+                    <span id="stateBadge" class="state-badge state-q_start">State: q_start</span>
+                  </div>
+                  <div id="tapeCells" class="tape-cells">
+                    <!-- Tape cells generated dynamically -->
+                  </div>
+                </div>
+
+                <!-- Current Step Details -->
+                <div class="current-step-box">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="font-size: 0.9rem; color: var(--text-muted);">Current PDA Transition:</strong>
+                    <span id="actionBadge" style="font-family: var(--font-mono); font-size: 0.8rem; background: rgba(255,255,255,0.08); padding: 0.2rem 0.5rem; border-radius: 4px;">INIT</span>
+                  </div>
+                  <div id="stepRule" class="rule-highlight">
+                    δ(q_start, ε, Z0) -> (q_loop, S Z0)
+                  </div>
+                  <p id="stepDescription" class="step-desc">
+                    Initializing Pushdown Automaton. Pushing start symbol onto stack.
+                  </p>
+                </div>
+
+                <!-- Step Trace Table (Collapsible) -->
+                <div>
+                  <details style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 1rem;">
+                    <summary style="cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
+                      📜 Full Transition Trace Log (<span id="traceLogCount">0</span> steps)
+                    </summary>
+                    <div style="max-height: 200px; overflow-y: auto; margin-top: 0.75rem;">
+                      <table class="test-table" style="font-family: var(--font-mono); font-size: 0.8rem;">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>State</th>
+                            <th>Stack</th>
+                            <th>Lookahead</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="traceTableBody">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Tab 2: Parse Tree & Leftmost Derivation -->
+          <div id="treeTab" class="tab-content">
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted);">Visual Concrete Syntax Tree:</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Blue = Non-Terminal | Green = Terminal</span>
+              </div>
+              <div id="parseTreeWrapper" class="parse-tree-wrapper">
+                <!-- SVG rendered here -->
+              </div>
+              <div>
+                <strong style="font-size: 0.85rem; color: var(--text-muted);">Leftmost Derivation Sequence:</strong>
+                <div id="derivationStepsBox" class="grammar-rules-list" style="max-height: 140px; margin-top: 0.5rem;">
+                  <!-- Derivation steps here -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Module 6: Test Suite -->
+          <div id="testTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <div>
+                <h3 style="font-size: 1rem;">Comprehensive Test Suite</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Runs predefined valid and invalid edge-case expressions against CFG & PDA.</p>
+              </div>
+              <button id="runAllTestsBtn" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                ▶ Run All Tests
+              </button>
+            </div>
+            <div style="max-height: 380px; overflow-y: auto;">
+              <table class="test-table">
+                <thead>
+                  <tr>
+                    <th>Test Input</th>
+                    <th>Category</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Steps</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="testSuiteTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 4: Module 6: History -->
+          <div id="historyTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="font-size: 1rem;">Session History</h3>
+              <button id="clearHistoryBtn" class="theme-toggle-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Clear History</button>
+            </div>
+            <div id="historyListContainer" style="max-height: 380px; overflow-y: auto;">
+              <!-- History items populated dynamically -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/lexer.js"></script>
+  <script src="js/grammar.js"></script>
+  <script src="js/parsetree.js"></script>
+  <script src="js/pda.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
